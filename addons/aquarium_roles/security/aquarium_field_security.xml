@@ -41,16 +41,21 @@
         ir.rule can restrict access beyond what ir.model.access.csv grants (the
         two combine with AND, unlike multiple ir.model.access.csv rows for the
         same model which OR together) without editing that module's own
-        security files. Scoping domain_force to `[(1, '=', 0)]` (always false)
-        under a rule whose `groups` is set to ONLY group_aquarium_cashier means
-        it applies exclusively to Cashier-role users - Fish Staff/Manager/Admin
-        are unaffected since they don't carry that group.
+        security files. Scoping domain_force to `[('id', '=', 0)]` (never
+        matches - id 0 is never a real record; Odoo 17's newer domain
+        validator rejects the classic `[(1, '=', 1)]`/`[(1, '=', 0)]`
+        int-literal trick used in older Odoo versions, confirmed live via
+        "Invalid domain: 'int' object has no attribute 'split'" on install)
+        under a rule whose `groups` is set to ONLY group_aquarium_cashier
+        means it applies exclusively to Cashier-role users -
+        Fish Staff/Manager/Admin are unaffected since they don't carry that
+        group.
     -->
     <record id="rule_aquarium_cashier_no_fish_mortality" model="ir.rule">
         <field name="name">Aquarium Cashier: no fish mortality access</field>
         <field name="model_id" ref="aquarium_fish_management.model_aquarium_fish_mortality"/>
         <field name="groups" eval="[(4, ref('group_aquarium_cashier'))]"/>
-        <field name="domain_force">[(1, '=', 0)]</field>
+        <field name="domain_force">[('id', '=', 0)]</field>
         <field name="perm_read">True</field>
         <field name="perm_write">True</field>
         <field name="perm_create">True</field>
@@ -60,7 +65,7 @@
         <field name="name">Aquarium Cashier: no fish transfer access</field>
         <field name="model_id" ref="aquarium_fish_management.model_aquarium_fish_transfer"/>
         <field name="groups" eval="[(4, ref('group_aquarium_cashier'))]"/>
-        <field name="domain_force">[(1, '=', 0)]</field>
+        <field name="domain_force">[('id', '=', 0)]</field>
         <field name="perm_read">True</field>
         <field name="perm_write">True</field>
         <field name="perm_create">True</field>
