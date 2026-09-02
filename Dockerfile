@@ -35,7 +35,7 @@ RUN apt-get update \
     && rm -rf /tmp/server-tools /tmp/server-ux /tmp/reporting-engine /tmp/afr \
     && apt-get purge -y git && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* \
-    && pip3 install --break-system-packages --no-cache-dir xlsxwriter xlrd
+    && pip3 install --no-cache-dir xlsxwriter xlrd
 
 # Base Odoo config template; rendered at container start (entrypoint.sh) with
 # ODOO_MASTER_PASSWORD. DB connection itself comes from HOST/PORT/USER/PASSWORD
