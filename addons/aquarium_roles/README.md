@@ -102,29 +102,43 @@ Only `group_aquarium_manager` and `group_aquarium_admin` carry
 Cashier/Fish-Staff-only user raises `AccessError`, not an empty/omitted
 value. Verified live for real - see below.
 
-## Known gap this module closes (and why it needed an `ir.rule`, not a CSV edit)
+## Defense-in-depth `ir.rule` for fish management (not, as first assumed, an active leak)
 
 `aquarium_fish_management`'s own `security/ir.model.access.csv` grants
 `aquarium.fish.mortality` and `aquarium.fish.transfer` read+write+create to
 `base.group_user` - i.e. to **every internal user**, regardless of role,
-because that module predates this role matrix.
-`point_of_sale.group_pos_user` (which Cashier gets) implies
-`base.group_user`, so without an extra restriction a Cashier would inherit
-fish-management *write* access purely by being an internal user - directly
-violating "Cashier: no fish management".
+because that module predates this role matrix. The initial assumption while
+building this module was that `point_of_sale.group_pos_user` (which Cashier
+gets) implies `base.group_user`, which would have meant a Cashier inherits
+fish-management *write* access purely by being an internal user. **Checked
+live and that assumption was wrong**: `res.groups.read` on
+`point_of_sale.group_pos_user`'s `implied_ids` on this instance returns an
+empty list, and a real Cashier test user's own `groups_id` after creation
+was exactly `[Aquarium Cashier, Point of Sale/User]` - no `base.group_user`.
+So today, Cashier is already blocked from `aquarium.fish.mortality`/
+`aquarium.fish.transfer` by `ir.model.access.csv` alone.
 
-`ir.model.access.csv` rows for the same model OR together (any matching row
-grants access), so a new CSV row in this module couldn't *remove* what
-`aquarium_fish_management`'s row already grants. `ir.rule` is the right tool
-- rules combine with **AND** on top of whatever `ir.model.access.csv`
-allows, and a rule's own `groups` field scopes it to only the users who
-should be denied. `security/aquarium_field_security.xml` adds a
-`domain_force = [(1, '=', 0)]` (always false) rule on both models, scoped
+The `ir.rule` in `security/aquarium_field_security.xml` is kept anyway as a
+deliberate safety net, not a fix for an observed leak - in case a real
+Cashier account ever also ends up with `base.group_user` for some other
+legitimate reason (portal features, a future Odoo version changing that
+implication, etc.). `ir.model.access.csv` rows for the same model OR
+together (any matching row grants access), so a new CSV row in this module
+couldn't *remove* what `aquarium_fish_management`'s row grants if that ever
+did apply - `ir.rule` is the right tool for that: rules combine with **AND**
+on top of whatever `ir.model.access.csv` allows, and a rule's own `groups`
+field scopes it to only the users who should be denied.
+`security/aquarium_field_security.xml` adds a `domain_force = [('id', '=', 0)]`
+(never matches - id 0 is never a real record) rule on both models, scoped
 via `groups` to `group_aquarium_cashier` only - Fish Staff/Manager/Admin
 never carry that group, so they're unaffected. This is deliberately scoped
 narrowly (Cashier only) rather than as a global deny-by-default rule, to
 avoid accidentally blocking a future role that isn't Fish Staff/Manager/Admin
-either - if more roles are added later, revisit this.
+either - if more roles are added later, revisit this. (The classic
+`[(1, '=', 1)]`/`[(1, '=', 0)]` int-literal "always true/false" domain
+trick from older Odoo versions does not work on this instance either -
+Odoo 17's stricter domain validator rejects it with "Invalid domain: 'int'
+object has no attribute 'split'", confirmed live - hence `[('id', '=', 0)]`.)
 
 This module does not otherwise touch `aquarium_fish_management`'s own
 `security/` files, by design (per the task brief, to avoid any risk of

@@ -29,14 +29,25 @@
     -->
 
     <!--
-        Known gap this module closes: aquarium_fish_management's own
+        Defense-in-depth, not (as an earlier version of this comment
+        claimed) closing an active leak: aquarium_fish_management's own
         ir.model.access.csv grants aquarium.fish.mortality and
         aquarium.fish.transfer read+write+create to base.group_user - i.e. to
-        EVERY internal user, regardless of role, because that module was built
-        before this role matrix existed. point_of_sale.group_pos_user (which
-        Cashier gets) implies base.group_user, so without the rules below a
-        Cashier would inherit fish-management write access purely by being an
-        internal user - directly violating "Cashier: no fish management".
+        EVERY internal user, regardless of role, because that module was
+        built before this role matrix existed. Checked live via
+        `res.groups.read` on point_of_sale.group_pos_user's `implied_ids` on
+        this instance: it is EMPTY - Cashier does NOT in fact inherit
+        base.group_user through it (confirmed by reading a real Cashier test
+        user's own `groups_id`: only Aquarium Cashier + Point of Sale/User,
+        nothing else). So today, Cashier is already blocked from
+        aquarium.fish.mortality/transfer by ir.model.access.csv alone, before
+        this rule is even evaluated - the rule below is a deliberate
+        safety net, not a fix for a live leak, in case a real Cashier
+        account ever also ends up with base.group_user for some other
+        legitimate reason (portal features, a future Odoo version changing
+        that implication, etc.) - directly violating "Cashier: no fish
+        management" is the failure mode this guards against, not one
+        observed in the field.
 
         ir.rule can restrict access beyond what ir.model.access.csv grants (the
         two combine with AND, unlike multiple ir.model.access.csv rows for the
