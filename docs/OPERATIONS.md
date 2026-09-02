@@ -17,28 +17,52 @@ done; this doc describes the system as built, not a task list.
 
 - **Host**: Mac Mini home server, managed via Dokploy (`http://192.168.0.104:3000`).
 - **Live URL**: https://aquarium.ranu.win — TLS terminated at Cloudflare's edge via a
-  Cloudflare Tunnel; Traefik on the Mac Mini proxies plain HTTP internally. Do not
-  enable Dokploy's `https:true` domain option for this app — see the gotcha below.
-- **Dokploy project**: "Aquarium Shop", two plain Applications (not Compose):
-  - `aquarium-postgres` — official `postgres:16` image, persistent volume
+  Cloudflare Tunnel; Traefik on the Mac Mini proxies plain HTTP internally.
+- **Dokploy project**: "Aquarium Shop", **one Compose resource** (`aquarium-shop`,
+  `composeId 18hpNUA_R9crirz7tObD3`, internal Dokploy `appName`
+  `compose-hack-haptic-interface-i75xzh` — this random-looking suffix is just Dokploy's
+  auto-generated slug, not something meaningful to preserve) — same pattern as
+  gms/getitdone/plane on this server: `docker-compose.yml` at the repo root defines two
+  services with Traefik routing labels directly on the `odoo` service, deployed as
+  plain `docker compose` containers (not Docker Swarm services, unlike a Dokploy plain
+  "Application" — check container names via `docker ps` if debugging: they'll be
+  `compose-hack-haptic-interface-i75xzh-odoo-1` / `...-postgres-1`, not the swarm-style
+  `<appName>.1.<hash>` pattern).
+  - `postgres` service — official `postgres:16` image, persistent volume
     `aquarium-postgres-data` at `/var/lib/postgresql/data`.
-  - `aquarium-odoo` — this repo, Dockerfile build, persistent volume
+  - `odoo` service — this repo, Dockerfile build, persistent volume
     `aquarium-odoo-filestore` at `/var/lib/odoo` (Odoo's filestore — product images,
     PDF attachments, etc. live here; losing this volume loses those files even though
-    the database itself is intact).
+    the database itself is intact). Both volumes are declared `external: true` in
+    `docker-compose.yml` with the exact same names — this deployment migrated from two
+    plain Dokploy Applications on 2026-09-02, reusing the same Docker volumes rather
+    than starting fresh, so the volume names predate the compose file and don't follow
+    Compose's usual `<project>_<name>` auto-naming.
 - **Repo**: `github.com/Ranushka/aquarium-shop-odoo` (public). Pushing to `main`
-  requires manually triggering a Dokploy deploy (`application.deploy` via the Dokploy
+  requires manually triggering a Dokploy deploy (`compose.deploy` via the Dokploy
   API/MCP) — there is no webhook auto-deploy configured for this app (it uses a plain
   git-URL source, not a GitHub App connection).
 
-### Gotcha: don't use Dokploy's `https:true` domain option here
+### Why Compose, not a plain Application
 
-This Mac Mini's Cloudflare Tunnel only ever forwards to Traefik's plain-HTTP entrypoint
-(TLS is already terminated at Cloudflare's edge). If a Dokploy domain is created with
-`https:true`, Dokploy adds a `redirect-to-https` Traefik middleware on that HTTP
-entrypoint — which the Tunnel never escapes, producing an infinite-looking redirect
-loop. Always create/update domains for this app with `https:false,
-certificateType:"none"`.
+This started as two plain Dokploy "Applications" (one per container) because this
+environment's Dokploy MCP tooling didn't expose Compose creation at the time. Migrated
+to Compose on 2026-09-02 to match how every other app on this server (gms, getitdone,
+plane) is managed — one `docker-compose.yml`, Traefik labels on the container instead of
+a separate Dokploy domain resource. If Compose creation tooling is ever unavailable
+again, the raw tRPC fallback is `compose.create` / `compose.update` (sets
+`sourceType`/`customGitUrl`/`composePath`/`env`) / `compose.deploy` — see this project's
+global CLAUDE.md.
+
+**Gotcha carried over from the plain-Application days, now solved differently**: this
+Mac Mini's Cloudflare Tunnel only ever forwards to Traefik's plain-HTTP entrypoint (TLS
+is already terminated at Cloudflare's edge). A plain Dokploy Application's `https:true`
+domain option adds a `redirect-to-https` Traefik middleware on that HTTP entrypoint,
+which the Tunnel can never escape — an infinite-looking redirect loop. The Compose
+file's Traefik labels sidestep this entirely by only ever declaring the `web`
+(plain-HTTP) entrypoint, matching every other Compose app here — there's no separate
+Dokploy "domain" resource for this app any more, the routing lives entirely in
+`docker-compose.yml`'s labels.
 
 ## Extra Odoo modules beyond stock Community edition
 
@@ -63,10 +87,15 @@ upstream fixes automatically.
 ## Backups
 
 Daily automated Postgres dump via cron on the Mac Mini itself (not a Dokploy-native
-backup resource, since this Postgres is a plain Application, not a Dokploy "Postgres"
-resource — Dokploy's own scheduled-backup feature doesn't apply to it):
+backup resource — Dokploy's scheduled-backup feature only applies to its native
+database resource types, and this Postgres is a plain Compose service):
 
-- Script: `/home/ranu/aquarium-backup.sh` on the Mac Mini.
+- Script: `/home/ranu/aquarium-backup.sh` on the Mac Mini. Finds the running postgres
+  container by Compose labels (`com.docker.compose.project` /
+  `com.docker.compose.service=postgres`), not by a hardcoded container name — this
+  survives a redeploy (new container ID) but **would need updating if the Compose
+  resource is ever deleted and recreated**, since Dokploy assigns a new random
+  `appName` each time (see the "Why Compose" section above).
 - Schedule: `crontab -l` → `30 3 * * *` (daily, 3:30am).
 - Destination: `/etc/dokploy/volume-backups/aquarium-shop/`, gzip'd SQL dumps,
   14-day retention (older files auto-deleted by the script).
@@ -76,7 +105,8 @@ resource — Dokploy's own scheduled-backup feature doesn't apply to it):
 
 ```bash
 ssh ranu@192.168.0.104
-CID=$(docker ps -qf name=aquarium-postgres-n7p9qh)
+CID=$(docker ps -qf label=com.docker.compose.project=compose-hack-haptic-interface-i75xzh \
+  -f label=com.docker.compose.service=postgres | head -1)
 gunzip -c /etc/dokploy/volume-backups/aquarium-shop/aquarium_shop-<timestamp>.sql.gz \
   | docker exec -i "$CID" psql -U odoo postgres
 ```
