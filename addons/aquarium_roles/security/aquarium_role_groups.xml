@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="0">
+    <!--
+        Role -> Odoo group mapping (AQS "User accounts, roles & permissions matrix").
+
+        Real Odoo application group XML ids in play on this instance (confirmed live
+        via ir.model.data / res.groups XML-RPC lookup on 2026-09-02, not guessed):
+
+            point_of_sale.group_pos_user      Point of Sale / User            (run a POS session, sell)
+            point_of_sale.group_pos_manager   Point of Sale / Administrator   (configure POS, all sessions)
+            stock.group_stock_user            Inventory / User                (process transfers/pickings)
+            stock.group_stock_manager         Inventory / Administrator       (full inventory incl. config)
+            stock.group_production_lot        manage Lots/Serial Numbers      (needed for fish batches)
+            stock.group_stock_multi_locations manage multiple stock locations (needed to see >1 tank)
+            purchase.group_purchase_user      Purchase / User                 (create/confirm POs)
+            purchase.group_purchase_manager   Purchase / Administrator        (full purchase config)
+            account.group_account_invoice     Invoicing / Billing             (create/post invoices)
+            account.group_account_manager     Invoicing / Billing Administrator (full accounting incl.
+                                               access to the OCA P&L/Balance Sheet/Trial Balance reports
+                                               installed on this instance - deliberately Admin-only)
+            base.group_system                 Administration / Settings       (Settings menu, technical
+                                               features, module install, users & groups)
+
+        Deliberately NOT implied by any of the four role groups below unless the
+        table says so - granting a broader group than the spec calls for would
+        silently widen access beyond the matrix.
+    -->
+
+    <record id="aquarium_role_category" model="ir.module.category">
+        <field name="name">Aquarium Shop Roles</field>
+        <field name="description">Job-role groups for the aquarium shop (Cashier, Fish
+            Staff, Manager, Administrator) - assign exactly one of these four to a real
+            staff user.</field>
+        <field name="sequence">50</field>
+    </record>
+
+    <!-- ================================================================
+         Internal gate group: NOT a job role. Used purely as the "groups"
+         value on ir.model.fields.groups for purchase-cost / profit fields
+         (see aquarium_field_security.xml) and on a couple of report menu
+         items (see aquarium_menu_restrictions.xml). Implied by Manager and
+         Admin only, so Cashier and Fish Staff never end up in it via any
+         implied_ids chain.
+         ================================================================ -->
+    <record id="group_aquarium_financial_data" model="res.groups">
+        <field name="name">Aquarium: View Purchase Cost &amp; Profit</field>
+        <field name="category_id" ref="aquarium_role_category"/>
+        <field name="comment">Gate group for field-level access to purchase-cost and
+            profit figures (stock.lot cost/profit fields, purchase order line unit
+            cost, product standard cost). Not meant to be assigned directly - it is
+            implied by Aquarium Manager and Aquarium Administrator.</field>
+    </record>
+
+    <!-- ================================================================
+         CASHIER
+         Spec: POS billing full, inventory view-only, no purchases, no fish
+         management, no expenses, no profit reports, no settings.
+         ================================================================ -->
+    <record id="group_aquarium_cashier" model="res.groups">
+        <field name="name">Aquarium Cashier</field>
+        <field name="category_id" ref="aquarium_role_category"/>
+        <field name="implied_ids" eval="[(4, ref('point_of_sale.group_pos_user'))]"/>
+        <field name="comment">POS billing, full. Does NOT imply stock.group_stock_user
+            (that grants write access to stock operations) - inventory visibility for
+            this role is intentionally read-only, granted via the explicit ir.rule /
+            access below rather than a broad built-in group. No purchase, no fish
+            management (see ir.rule deny in aquarium_field_security.xml), no
+            accounting, no settings.</field>
+    </record>
+
+    <!-- ================================================================
+         FISH / AQUARIUM STAFF
+         Spec: fish management full, inventory limited, no POS/purchases/
+         expenses/profit reports/settings.
+         ================================================================ -->
+    <record id="group_aquarium_fish_staff" model="res.groups">
+        <field name="name">Aquarium Fish Staff</field>
+        <field name="category_id" ref="aquarium_role_category"/>
+        <field name="implied_ids" eval="[
+            (4, ref('stock.group_stock_user')),
+            (4, ref('stock.group_production_lot')),
+            (4, ref('stock.group_stock_multi_locations')),
+        ]"/>
+        <field name="comment">stock.group_stock_user (not stock.group_stock_manager) is
+            the "inventory limited" grant - can process transfers/pickings but not
+            configure warehouses or approve everything an Inventory Administrator
+            could. stock.group_production_lot + stock.group_stock_multi_locations are
+            needed for fish batches (lots) and multi-tank (multi-location) visibility.
+            Full CRUD on the fish-specific models themselves (species, batches,
+            mortality, transfers) already comes from aquarium_fish_management's own
+            ir.model.access.csv, most of which is granted to base.group_user (any
+            internal user) or stock.group_stock_manager - see the README's "known gap"
+            note for the one place that needed an explicit ir.rule instead (Cashier
+            must NOT get fish-management write access it would otherwise inherit
+            purely by being an internal user). No POS group, no purchase group, no
+            accounting group, no settings.</field>
+    </record>
+
+    <!-- ================================================================
+         MANAGER
+         Spec: full POS/inventory/purchases/fish management, limited
+         expenses & profit reports, no settings.
+         ================================================================ -->
+    <record id="group_aquarium_manager" model="res.groups">
+        <field name="name">Aquarium Manager</field>
+        <field name="category_id" ref="aquarium_role_category"/>
+        <field name="implied_ids" eval="[
+            (4, ref('group_aquarium_cashier')),
+            (4, ref('group_aquarium_fish_staff')),
+            (4, ref('stock.group_stock_manager')),
+            (4, ref('purchase.group_purchase_user')),
+            (4, ref('account.group_account_invoice')),
+            (4, ref('group_aquarium_financial_data')),
+        ]"/>
+        <field name="comment">Implies Cashier + Fish Staff (so a Manager can do
+            everything either of those roles can) plus stock.group_stock_manager (full
+            inventory incl. config - upgrades Fish Staff's "limited" stock.group_stock_user
+            to full), purchase.group_purchase_user (full purchasing - create/confirm
+            POs), and account.group_account_invoice ("Billing" - can create/post
+            invoices, i.e. handle expenses at the transactional level). Deliberately
+            does NOT imply account.group_account_manager ("Billing Administrator" -
+            that's what unlocks the OCA P&amp;L/Balance Sheet/Trial Balance reports
+            installed on this instance) or base.group_system (Settings) - that is the
+            "limited expenses &amp; profit reports, no settings" part of the spec.
+            group_aquarium_financial_data grants read access to the purchase-cost/
+            profit *fields* themselves (see aquarium_field_security.xml) - "limited"
+            profit reporting means Manager can see the numbers on a fish batch record
+            but not run the full accounting reports, not that the fields are hidden
+            from them entirely.</field>
+    </record>
+
+    <!-- ================================================================
+         ADMINISTRATOR / OWNER
+         Spec: full access to everything.
+         ================================================================ -->
+    <record id="group_aquarium_admin" model="res.groups">
+        <field name="name">Aquarium Administrator</field>
+        <field name="category_id" ref="aquarium_role_category"/>
+        <field name="implied_ids" eval="[
+            (4, ref('group_aquarium_manager')),
+            (4, ref('base.group_system')),
+            (4, ref('account.group_account_manager')),
+            (4, ref('purchase.group_purchase_manager')),
+            (4, ref('point_of_sale.group_pos_manager')),
+        ]"/>
+        <field name="comment">Implies Manager (so gets everything Manager, Fish Staff
+            and Cashier get) plus base.group_system (Settings, technical features,
+            module install, user/group management), account.group_account_manager
+            (full accounting incl. the OCA P&amp;L/Balance Sheet/Trial Balance reports),
+            purchase.group_purchase_manager (purchase configuration) and
+            point_of_sale.group_pos_manager (POS configuration, all sessions). This is
+            the "Administrator/Owner" role - full access to everything in the matrix.
+            group_aquarium_financial_data comes along transitively via Manager.</field>
+    </record>
+</odoo>

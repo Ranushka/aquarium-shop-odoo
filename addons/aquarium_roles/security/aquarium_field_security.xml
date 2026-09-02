@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="0">
+    <!--
+        Real field-level access control (ir.model.fields.groups), not just
+        view-level hiding. A `groups` attribute on a <field> in a view only hides
+        the field from that view's form/list/etc - anyone with model read access
+        can still fetch it via read()/search_read() over XML-RPC/JSON-RPC/the ORM.
+        ir.model.fields.groups is enforced by the ORM itself (models.py's field
+        access check) for every read/write route, which is what the spec asks for
+        ("verify restricted fields are actually hidden, not just menu-hidden").
+
+        Each <record> below re-declares an EXISTING field's auto-generated xmlid
+        (format: <defining_module>.field_<table>__<field_name>, confirmed live via
+        ir.model.fields / ir.model.data XML-RPC lookup on 2026-09-02, not guessed)
+        and appends group_aquarium_financial_data to its `groups` m2m using a (4, ..)
+        link so we don't clobber any group already on the field.
+
+        Restricted fields:
+          - stock.lot: cost_per_fish, total_purchase_cost, total_sales_revenue,
+            profit, profit_margin (aquarium_fish_management's fish-batch
+            profitability fields - SEQ 40).
+          - purchase.order.line: price_unit (the actual per-unit purchase cost
+            entered on a PO line - the field fish_purchase.py copies into
+            stock.lot.cost_per_fish on confirm).
+          - product.template / product.product: standard_price (the standard
+            "Cost" field on any product, fish or accessory).
+
+        Only group_aquarium_manager and group_aquarium_admin carry
+        group_aquarium_financial_data (via implied_ids in
+        aquarium_role_groups.xml) - Cashier and Fish Staff never do, in any
+        chain, so a read() of any of these fields by a Cashier/Fish-Staff-only
+        user raises AccessError, not just an empty/omitted value.
+    -->
+
+    <record id="aquarium_fish_management.field_stock_lot__cost_per_fish" model="ir.model.fields">
+        <field name="groups" eval="[(4, ref('group_aquarium_financial_data'))]"/>
+    </record>
+    <record id="aquarium_fish_management.field_stock_lot__total_purchase_cost" model="ir.model.fields">
+        <field name="groups" eval="[(4, ref('group_aquarium_financial_data'))]"/>
+    </record>
+    <record id="aquarium_fish_management.field_stock_lot__total_sales_revenue" model="ir.model.fields">
+        <field name="groups" eval="[(4, ref('group_aquarium_financial_data'))]"/>
+    </record>
+    <record id="aquarium_fish_management.field_stock_lot__profit" model="ir.model.fields">
+        <field name="groups" eval="[(4, ref('group_aquarium_financial_data'))]"/>
+    </record>
+    <record id="aquarium_fish_management.field_stock_lot__profit_margin" model="ir.model.fields">
+        <field name="groups" eval="[(4, ref('group_aquarium_financial_data'))]"/>
+    </record>
+
+    <record id="purchase.field_purchase_order_line__price_unit" model="ir.model.fields">
+        <field name="groups" eval="[(4, ref('group_aquarium_financial_data'))]"/>
+    </record>
+
+    <record id="product.field_product_template__standard_price" model="ir.model.fields">
+        <field name="groups" eval="[(4, ref('group_aquarium_financial_data'))]"/>
+    </record>
+    <record id="product.field_product_product__standard_price" model="ir.model.fields">
+        <field name="groups" eval="[(4, ref('group_aquarium_financial_data'))]"/>
+    </record>
+
+    <!--
+        Known gap this module closes: aquarium_fish_management's own
+        ir.model.access.csv grants aquarium.fish.mortality and
+        aquarium.fish.transfer read+write+create to base.group_user - i.e. to
+        EVERY internal user, regardless of role, because that module was built
+        before this role matrix existed. point_of_sale.group_pos_user (which
+        Cashier gets) implies base.group_user, so without the rules below a
+        Cashier would inherit fish-management write access purely by being an
+        internal user - directly violating "Cashier: no fish management".
+
+        ir.rule can restrict access beyond what ir.model.access.csv grants (the
+        two combine with AND, unlike multiple ir.model.access.csv rows for the
+        same model which OR together) without editing that module's own
+        security files. Scoping domain_force to `[(1, '=', 0)]` (always false)
+        under a rule whose `groups` is set to ONLY group_aquarium_cashier means
+        it applies exclusively to Cashier-role users - Fish Staff/Manager/Admin
+        are unaffected since they don't carry that group.
+    -->
+    <record id="rule_aquarium_cashier_no_fish_mortality" model="ir.rule">
+        <field name="name">Aquarium Cashier: no fish mortality access</field>
+        <field name="model_id" ref="aquarium_fish_management.model_aquarium_fish_mortality"/>
+        <field name="groups" eval="[(4, ref('group_aquarium_cashier'))]"/>
+        <field name="domain_force">[(1, '=', 0)]</field>
+        <field name="perm_read">True</field>
+        <field name="perm_write">True</field>
+        <field name="perm_create">True</field>
+        <field name="perm_unlink">True</field>
+    </record>
+    <record id="rule_aquarium_cashier_no_fish_transfer" model="ir.rule">
+        <field name="name">Aquarium Cashier: no fish transfer access</field>
+        <field name="model_id" ref="aquarium_fish_management.model_aquarium_fish_transfer"/>
+        <field name="groups" eval="[(4, ref('group_aquarium_cashier'))]"/>
+        <field name="domain_force">[(1, '=', 0)]</field>
+        <field name="perm_read">True</field>
+        <field name="perm_write">True</field>
+        <field name="perm_create">True</field>
+        <field name="perm_unlink">True</field>
+    </record>
+</odoo>

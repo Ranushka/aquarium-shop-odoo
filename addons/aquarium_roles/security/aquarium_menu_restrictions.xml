@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="0">
+    <!--
+        Menu-level hiding, as a defense-in-depth layer on top of the real
+        field-level restriction in aquarium_field_security.xml (menu hiding
+        alone would NOT satisfy the spec's "verify restricted fields are
+        actually hidden, not just menu-hidden" requirement - it's a UI nicety,
+        not a security boundary, which is why the ir.model.fields.groups
+        records above exist).
+
+        A module can extend another module's record by re-declaring the same
+        external id (this module depends on aquarium_fish_management, so its
+        menuitem xmlids already exist by the time this data loads) - no edits
+        to aquarium_fish_management/views/menus.xml are made.
+    -->
+
+    <!-- Cashier has no fish-management access at all (see the ir.rule deny in
+         aquarium_field_security.xml) - hide the whole "Aquarium Fish" app menu
+         from that role so there's nothing to click into and immediately hit
+         an AccessError on. Fish Staff/Manager/Admin keep seeing it. -->
+    <record id="aquarium_fish_management.menu_aquarium_root" model="ir.ui.menu">
+        <field name="groups_id" eval="[(4, ref('group_aquarium_fish_staff')),
+                                        (4, ref('group_aquarium_manager')),
+                                        (4, ref('group_aquarium_admin'))]"/>
+    </record>
+
+    <!-- Fish Profitability report reads stock.lot's cost/profit fields, which
+         are field-level-restricted to group_aquarium_financial_data (Manager +
+         Admin only) - hide the menu entry for anyone else too, matching the
+         spec's "no profit reports" for Cashier/Fish Staff. -->
+    <record id="aquarium_fish_management.menu_aquarium_report_profitability" model="ir.ui.menu">
+        <field name="groups_id" eval="[(4, ref('group_aquarium_manager')),
+                                        (4, ref('group_aquarium_admin'))]"/>
+    </record>
+</odoo>
