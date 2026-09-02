@@ -10,7 +10,7 @@
             <field name="usage" position="after">
                 <field name="is_tank"/>
             </field>
-            <xml expr="//sheet" position="inside">
+            <xpath expr="//sheet" position="inside">
                 <group string="Tank Details (SEQ 32)" invisible="not is_tank">
                     <group>
                         <field name="tank_code"/>
@@ -38,7 +38,7 @@
                         </tree>
                     </field>
                 </group>
-            </xml>
+            </xpath>
         </field>
     </record>
 
