@@ -109,6 +109,27 @@ No real product catalog, no real staff user accounts, and no POS/fish-area hardw
 configured yet — those need the shop's actual data and physical setup, tracked as
 separate Plane AQS tasks.
 
+## Source code & access handover (AQS task 51)
+
+Unlike a typical client-vendor handover, this system was built directly on the owner's
+own infrastructure and accounts throughout, so there's no separate transfer step —
+confirming what the owner already has:
+
+- **Source code**: `github.com/Ranushka/aquarium-shop-odoo`, owned by the business
+  owner's own GitHub account. No separate repo/org to transfer.
+- **Production system**: runs on the owner's own Mac Mini home server, managed through
+  their own Dokploy instance — not a third-party host.
+- **Database**: Postgres container on the same server; admin login and master password
+  documented above, held by the owner (password manager / this project's memory
+  entry, not committed to the repo).
+- **Odoo admin account**: `admin@aquarium.shop`, full access, created directly by/for
+  the owner — no vendor-held "master" account exists separately from this.
+
+Nothing here needs a transfer ceremony — it's confirmation the owner already has full,
+unmediated access. What *would* still need doing before this is a true multi-person
+handover (e.g. handing this off to hired staff or a new admin) is documented in
+`docs/USER_MANUAL.md`'s role breakdown and AQS task 12 (real staff accounts).
+
 ## Day-to-day admin quick reference
 
 - **Add a product (accessory)**: Inventory or Point of Sale → Products.

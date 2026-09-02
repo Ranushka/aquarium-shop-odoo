@@ -4,6 +4,12 @@ Odoo Community Edition deployment for the Aquarium Shop POS, Billing, Inventory 
 Fish Management System (Sharjah, UAE). See the Plane project **AQS** for the full task
 breakdown.
 
+**Docs**: [`docs/OPERATIONS.md`](docs/OPERATIONS.md) (infra, admin access,
+backup/restore, handover) · [`docs/USER_MANUAL.md`](docs/USER_MANUAL.md) (per-role
+day-to-day usage) · [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) (schema reference) ·
+[`addons/aquarium_fish_management/README.md`](addons/aquarium_fish_management/README.md)
+(the custom fish/tank module's own design doc).
+
 ## What's here
 
 - `Dockerfile` — built on the official `odoo:17.0` image, adds this repo's `addons/`
