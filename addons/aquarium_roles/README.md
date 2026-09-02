@@ -68,12 +68,22 @@ stock operations, which would make "inventory view-only" false).
 
 A `groups` attribute on a `<field>` in a view only hides the field from that
 particular view - anyone with model read access can still fetch it via
-`read()`/`search_read()` over XML-RPC/JSON-RPC or the ORM directly.
-`ir.model.fields.groups` is enforced by the ORM's own field-access check on
-every read/write route, which is the real security boundary the spec asks
-for. `security/aquarium_field_security.xml` adds `group_aquarium_financial_data`
-to the `groups` m2m of these existing fields (their auto-generated xmlids,
-confirmed live, are in that file's comments):
+`read()`/`search_read()` over XML-RPC/JSON-RPC or the ORM directly. A field's
+own `groups` keyword (set at the Python field-definition level) is enforced
+by the ORM's own field-access check on every read/write route, which is the
+real security boundary the spec asks for.
+
+`models/field_security.py` re-declares each field below on an inheriting
+model with only `groups=` changed - Odoo merges field attributes across the
+MRO, so `compute`/`store`/`currency_field`/etc. all still come from the
+original definition in `aquarium_fish_management`/`purchase`/`product`.
+This is a deliberate departure from the commonly-documented
+`<record model="ir.model.fields">` XML pattern: on this Odoo 17 instance
+that XML approach fails outright (`ir.model.fields.write()` refuses to alter
+any property of a non-"manual" field - confirmed live, see
+`security/aquarium_field_security.xml`'s comments for the exact error and
+reasoning) - the Python field-redeclaration approach below is what actually
+works:
 
 | Model | Field | What it is |
 |---|---|---|

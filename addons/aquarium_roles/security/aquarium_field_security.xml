@@ -1,63 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo noupdate="0">
     <!--
-        Real field-level access control (ir.model.fields.groups), not just
-        view-level hiding. A `groups` attribute on a <field> in a view only hides
-        the field from that view's form/list/etc - anyone with model read access
-        can still fetch it via read()/search_read() over XML-RPC/JSON-RPC/the ORM.
-        ir.model.fields.groups is enforced by the ORM itself (models.py's field
-        access check) for every read/write route, which is what the spec asks for
-        ("verify restricted fields are actually hidden, not just menu-hidden").
+        Real field-level access control for purchase-cost / profit fields
+        (stock.lot cost/profit fields, purchase.order.line.price_unit,
+        product standard_price) lives in Python, NOT here - see
+        models/field_security.py.
 
-        Each <record> below re-declares an EXISTING field's auto-generated xmlid
-        (format: <defining_module>.field_<table>__<field_name>, confirmed live via
-        ir.model.fields / ir.model.data XML-RPC lookup on 2026-09-02, not guessed)
-        and appends group_aquarium_financial_data to its `groups` m2m using a (4, ..)
-        link so we don't clobber any group already on the field.
+        An earlier version of this module tried the commonly-documented
+        <record model="ir.model.fields"><field name="groups" .../></record>
+        XML pattern, which is what Odoo core/OCA modules used in older
+        versions. On this Odoo 17 instance, ir.model.fields.write() (see
+        odoo/addons/base/models/ir_model.py) unconditionally refuses to
+        alter ANY property of a field whose state != 'manual' (i.e. any
+        field defined in Python by a module, not created via the UI) -
+        "Properties of base fields cannot be altered in this manner! Please
+        modify them through Python code, preferably through a custom
+        addon!" - confirmed live when installing this module the first
+        time. The actually-supported mechanism is exactly what that error
+        message says: redeclare the field on an inheriting model in Python
+        with the `groups` keyword - Odoo's field-merging across the MRO
+        keeps every other property from the original definition. Kept as a
+        comment here (rather than silently dropped) so nobody re-adds the
+        XML version and re-triggers the same install failure.
 
-        Restricted fields:
-          - stock.lot: cost_per_fish, total_purchase_cost, total_sales_revenue,
-            profit, profit_margin (aquarium_fish_management's fish-batch
-            profitability fields - SEQ 40).
-          - purchase.order.line: price_unit (the actual per-unit purchase cost
-            entered on a PO line - the field fish_purchase.py copies into
-            stock.lot.cost_per_fish on confirm).
-          - product.template / product.product: standard_price (the standard
-            "Cost" field on any product, fish or accessory).
-
-        Only group_aquarium_manager and group_aquarium_admin carry
-        group_aquarium_financial_data (via implied_ids in
-        aquarium_role_groups.xml) - Cashier and Fish Staff never do, in any
-        chain, so a read() of any of these fields by a Cashier/Fish-Staff-only
-        user raises AccessError, not just an empty/omitted value.
+        The ir.rule gap-fix below is unaffected by any of this - ir.rule is
+        a completely different mechanism (row-level, not field-level) and
+        writes to it are not restricted the way ir.model.fields is.
     -->
-
-    <record id="aquarium_fish_management.field_stock_lot__cost_per_fish" model="ir.model.fields">
-        <field name="groups" eval="[(4, ref('group_aquarium_financial_data'))]"/>
-    </record>
-    <record id="aquarium_fish_management.field_stock_lot__total_purchase_cost" model="ir.model.fields">
-        <field name="groups" eval="[(4, ref('group_aquarium_financial_data'))]"/>
-    </record>
-    <record id="aquarium_fish_management.field_stock_lot__total_sales_revenue" model="ir.model.fields">
-        <field name="groups" eval="[(4, ref('group_aquarium_financial_data'))]"/>
-    </record>
-    <record id="aquarium_fish_management.field_stock_lot__profit" model="ir.model.fields">
-        <field name="groups" eval="[(4, ref('group_aquarium_financial_data'))]"/>
-    </record>
-    <record id="aquarium_fish_management.field_stock_lot__profit_margin" model="ir.model.fields">
-        <field name="groups" eval="[(4, ref('group_aquarium_financial_data'))]"/>
-    </record>
-
-    <record id="purchase.field_purchase_order_line__price_unit" model="ir.model.fields">
-        <field name="groups" eval="[(4, ref('group_aquarium_financial_data'))]"/>
-    </record>
-
-    <record id="product.field_product_template__standard_price" model="ir.model.fields">
-        <field name="groups" eval="[(4, ref('group_aquarium_financial_data'))]"/>
-    </record>
-    <record id="product.field_product_product__standard_price" model="ir.model.fields">
-        <field name="groups" eval="[(4, ref('group_aquarium_financial_data'))]"/>
-    </record>
 
     <!--
         Known gap this module closes: aquarium_fish_management's own
