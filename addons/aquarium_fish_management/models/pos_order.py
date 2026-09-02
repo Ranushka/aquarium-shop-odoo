@@ -105,9 +105,15 @@ class PosOrder(models.Model):
                         "tank_name": tank.tank_display_name or tank.display_name,
                         "quantity": 0.0,
                         "batch_ids": [],
+                        # Lot NAME strings, same order as batch_ids - the POS
+                        # frontend needs the lot *name* (not the id) to build
+                        # the `newPackLotLines` it hands to
+                        # Orderline.setPackLotLines() (SEQ 37).
+                        "batch_names": [],
                     })
                     entry["quantity"] += qty
                     entry["batch_ids"].append(lot.id)
+                    entry["batch_names"].append(lot.name)
         return list(tanks_data.values())
 
     @api.model
