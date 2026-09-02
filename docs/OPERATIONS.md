@@ -64,6 +64,23 @@ file's Traefik labels sidestep this entirely by only ever declaring the `web`
 Dokploy "domain" resource for this app any more, the routing lives entirely in
 `docker-compose.yml`'s labels.
 
+### Gotcha: `/mnt/extra-addons` is a Docker VOLUME in the upstream `odoo:17.0` image — don't use it
+
+Discovered 2026-09-02 after two straight real code fixes silently failed to take effect
+on redeploy: the upstream `odoo:17.0` image declares `/mnt/extra-addons` as a Docker
+`VOLUME`. Docker's default behavior is to carry an existing anonymous volume forward
+across `docker compose up`/container recreation rather than refresh it from the new
+image layer — so a normal `compose.deploy` silently kept serving the *previous* addon
+code, with no error anywhere. The fix that was live-verified to work: `docker compose
+up -d --renew-anon-volumes odoo` run directly on the host. **The permanent fix, already
+applied**: custom addons are copied to `/mnt/custom-addons` instead (see `Dockerfile` /
+`odoo.conf.template`'s `addons_path`) — a path with no `VOLUME` declaration in the base
+image, so it behaves like any normal image layer and refreshes on every rebuild with no
+special flag needed. If a change to `addons/` or `Dockerfile` ever seems to not be
+taking effect after a normal deploy, suspect this class of problem again — verify with
+`docker exec <odoo container> grep -c '<a string only in your new code>'
+/mnt/custom-addons/<module>/<file>` before assuming the fix itself is wrong.
+
 ## Extra Odoo modules beyond stock Community edition
 
 Two OCA (Odoo Community Association) modules are built into the Docker image

@@ -2,8 +2,18 @@ FROM odoo:17.0
 
 USER root
 
-# Custom addons (Phase 2: fish species / batch / tank / mortality module lives here)
-COPY ./addons /mnt/extra-addons
+# Custom addons (Phase 2: fish species / batch / tank / mortality module lives here).
+#
+# Deliberately NOT copied to /mnt/extra-addons: the upstream odoo:17.0 image
+# declares that path as a Docker VOLUME, so `docker compose up` reuses the
+# OLD anonymous volume's contents across container recreates instead of the
+# new image layer — a normal deploy silently keeps serving stale addon code
+# (discovered 2026-09-02: two straight deploys of real fixes never took
+# effect until manually forced with `docker compose up --renew-anon-volumes`).
+# /mnt/custom-addons has no such VOLUME declaration, so it behaves like any
+# normal image layer and gets refreshed on every rebuild, no special flag
+# needed. Keep odoo.conf.template's addons_path in sync with this path.
+COPY ./addons /mnt/custom-addons
 
 # OCA modules Community edition is missing (sparse-checkout just what's
 # needed from each repo's 17.0 branch, not the whole repo):
