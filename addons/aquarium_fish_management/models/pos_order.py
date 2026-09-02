@@ -3,6 +3,56 @@ from odoo import api, fields, models
 from odoo.exceptions import UserError
 
 
+class ProductProduct(models.Model):
+    """Expose the linked fish species (if any) on the sellable product so
+    the POS frontend can tell, per product tile, whether clicking it should
+    go through the guided species/tank selection flow (SEQ 37).
+
+    Not stored: `aquarium.fish.species.product_id` is the authoritative
+    link (set from the species form); this is a thin, always-fresh mirror
+    of it, cheap enough for POS catalog sizes (a shop's live product count).
+    """
+    _inherit = "product.product"
+
+    fish_species_id = fields.Many2one(
+        "aquarium.fish.species", string="Fish Species",
+        compute="_compute_fish_species_id",
+        help="Set when a fish species record points to this product as its "
+             "sellable product. Read by the POS frontend to trigger the "
+             "guided tank-selection flow instead of a plain add-to-order.",
+    )
+
+    def _compute_fish_species_id(self):
+        species_by_product = {
+            species.product_id.id: species.id
+            for species in self.env["aquarium.fish.species"].search(
+                [("product_id", "in", self.ids)],
+            )
+        }
+        for product in self:
+            product.fish_species_id = species_by_product.get(product.id, False)
+
+
+class PosSession(models.Model):
+    """Make sure `fish_species_id` is part of the product data the POS
+    frontend loads at session start - without this, `product.fish_species_id`
+    would exist on the backend model but never reach the browser, and the
+    JS click hook in pos_fish_sale.js would have nothing to check.
+
+    Odoo 17.0 mainline loads POS product fields via
+    `_loader_params_product_product()` (a per-model dict of
+    {'search_params': {'domain': ..., 'fields': [...]}}) rather than the
+    `_load_pos_data_fields()` classmethod used in later Odoo versions - see
+    the module README for the version-sensitivity note on this method name.
+    """
+    _inherit = "pos.session"
+
+    def _loader_params_product_product(self):
+        result = super()._loader_params_product_product()
+        result["search_params"]["fields"].append("fish_species_id")
+        return result
+
+
 class PosOrderLine(models.Model):
     """Fish sales via POS (SRD 4.12 / SEQ 37) - backend support.
 
@@ -59,6 +109,28 @@ class PosOrder(models.Model):
                     entry["quantity"] += qty
                     entry["batch_ids"].append(lot.id)
         return list(tanks_data.values())
+
+    @api.model
+    def _order_line_fields(self, line, session_id=None):
+        """Carry the fish-sale fields the frontend attaches to each
+        orderline's exported JSON (see `Orderline.export_as_JSON` in
+        pos_fish_sale.js) through to the `pos.order.line` create vals.
+
+        The base `_order_line_fields()` only whitelists/maps the stock
+        fields it already knows about (product_id, qty, price_unit, ...);
+        anything else in the raw line dict is silently dropped unless we
+        pull it out here ourselves. This is the "matching field on the
+        backend pos.order.line create path" the module README used to flag
+        as missing.
+        """
+        raw_vals = line[2] if len(line) > 2 and isinstance(line[2], dict) else {}
+        result = super()._order_line_fields(line, session_id)
+        if len(result) > 2 and isinstance(result[2], dict) and raw_vals.get("is_fish_line"):
+            result[2]["is_fish_line"] = True
+            result[2]["fish_species_id"] = raw_vals.get("fish_species_id") or False
+            result[2]["source_tank_id"] = raw_vals.get("source_tank_id") or False
+            result[2]["fish_batch_id"] = raw_vals.get("fish_batch_id") or False
+        return result
 
     def _process_order(self, order, draft, existing_order):
         order_id = super()._process_order(order, draft, existing_order)
