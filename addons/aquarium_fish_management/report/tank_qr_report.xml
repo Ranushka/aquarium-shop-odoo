@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- SEQ 32: printable QR code report per tank -->
+    <record id="action_report_tank_qr" model="ir.actions.report">
+        <field name="name">Tank QR Label</field>
+        <field name="model">stock.location</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">aquarium_fish_management.report_tank_qr_document</field>
+        <field name="report_file">aquarium_fish_management.report_tank_qr_document</field>
+        <field name="print_report_name">'Tank QR - %s' % (object.tank_code or object.display_name)</field>
+        <field name="binding_model_id" ref="stock.model_stock_location"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_tank_qr_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-if="o.is_tank">
+                    <div class="page" style="text-align:center; padding-top:60px;">
+                        <h1 t-esc="o.tank_code"/>
+                        <h3 t-esc="o.tank_display_name or o.display_name"/>
+                        <img t-if="o.tank_qr_image"
+                             t-att-src="'data:image/png;base64,%s' % o.tank_qr_image.decode('utf-8')"
+                             style="width:280px;height:280px;"/>
+                        <p t-esc="o.tank_scan_url"/>
+                        <p>Capacity: <t t-esc="o.tank_capacity"/></p>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

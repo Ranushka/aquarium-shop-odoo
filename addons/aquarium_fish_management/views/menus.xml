@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_aquarium_root" name="Aquarium Fish" sequence="20"
+              web_icon="aquarium_fish_management,static/description/icon.png"/>
+
+    <menuitem id="menu_aquarium_operations" name="Operations" parent="menu_aquarium_root" sequence="10"/>
+    <menuitem id="menu_aquarium_tanks" name="Tanks" parent="menu_aquarium_operations"
+              action="action_aquarium_tanks" sequence="10"/>
+    <menuitem id="menu_aquarium_batches" name="Fish Batches" parent="menu_aquarium_operations"
+              action="action_fish_batches" sequence="20"/>
+    <menuitem id="menu_aquarium_mortality" name="Mortality" parent="menu_aquarium_operations"
+              action="action_fish_mortality" sequence="30"/>
+    <menuitem id="menu_aquarium_transfers" name="Transfers" parent="menu_aquarium_operations"
+              action="action_fish_transfer" sequence="40"/>
+    <menuitem id="menu_aquarium_sales" name="Fish Sales" parent="menu_aquarium_operations"
+              action="action_fish_sales" sequence="50"/>
+
+    <menuitem id="menu_aquarium_master_data" name="Master Data" parent="menu_aquarium_root" sequence="20"/>
+    <menuitem id="menu_aquarium_species" name="Fish Species" parent="menu_aquarium_master_data"
+              action="action_fish_species" sequence="10"/>
+    <menuitem id="menu_aquarium_categories" name="Categories" parent="menu_aquarium_master_data"
+              action="action_fish_category" sequence="20"/>
+
+    <menuitem id="menu_aquarium_reporting" name="Reporting" parent="menu_aquarium_root" sequence="30"/>
+    <menuitem id="menu_aquarium_dashboard" name="Dashboard" parent="menu_aquarium_reporting"
+              action="action_fish_dashboard" sequence="10"/>
+    <menuitem id="menu_aquarium_report_stock" name="Current Fish Stock" parent="menu_aquarium_reporting"
+              action="action_fish_batches" sequence="20"/>
+    <menuitem id="menu_aquarium_report_tank_stock" name="Tank Stock" parent="menu_aquarium_reporting"
+              action="action_aquarium_tanks" sequence="30"/>
+    <menuitem id="menu_aquarium_report_movement" name="Fish Movement" parent="menu_aquarium_reporting"
+              action="action_fish_movement_report" sequence="40"/>
+    <menuitem id="menu_aquarium_report_profitability" name="Fish Profitability" parent="menu_aquarium_reporting"
+              action="action_fish_profitability_report" sequence="50"/>
+</odoo>

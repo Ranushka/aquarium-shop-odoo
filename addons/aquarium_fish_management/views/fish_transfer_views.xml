@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_fish_transfer_tree" model="ir.ui.view">
+        <field name="name">aquarium.fish.transfer.tree</field>
+        <field name="model">aquarium.fish.transfer</field>
+        <field name="arch" type="xml">
+            <tree decoration-muted="state == 'cancelled'" decoration-success="state == 'done'">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="lot_id"/>
+                <field name="fish_species_id"/>
+                <field name="source_tank_id"/>
+                <field name="destination_tank_id"/>
+                <field name="quantity"/>
+                <field name="state"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_fish_transfer_form" model="ir.ui.view">
+        <field name="name">aquarium.fish.transfer.form</field>
+        <field name="model">aquarium.fish.transfer</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_confirm_transfer" type="object" string="Confirm Transfer"
+                            class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_cancel" type="object" string="Cancel"
+                            invisible="state == 'done'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="date"/>
+                            <field name="lot_id"/>
+                            <field name="fish_species_id" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="source_tank_id"/>
+                            <field name="destination_tank_id"/>
+                            <field name="quantity"/>
+                        </group>
+                    </group>
+                    <group string="Notes">
+                        <field name="notes" nolabel="1"/>
+                    </group>
+                    <group string="Resulting Stock Transfer" invisible="not picking_id">
+                        <field name="picking_id" readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_fish_transfer" model="ir.actions.act_window">
+        <field name="name">Fish Transfers</field>
+        <field name="res_model">aquarium.fish.transfer</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

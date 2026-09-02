@@ -1,0 +1,10 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_aquarium_fish_category_user,aquarium.fish.category.user,model_aquarium_fish_category,base.group_user,1,0,0,0
+access_aquarium_fish_category_manager,aquarium.fish.category.manager,model_aquarium_fish_category,stock.group_stock_manager,1,1,1,1
+access_aquarium_fish_species_user,aquarium.fish.species.user,model_aquarium_fish_species,base.group_user,1,0,0,0
+access_aquarium_fish_species_manager,aquarium.fish.species.manager,model_aquarium_fish_species,stock.group_stock_manager,1,1,1,1
+access_aquarium_fish_mortality_user,aquarium.fish.mortality.user,model_aquarium_fish_mortality,base.group_user,1,1,1,0
+access_aquarium_fish_mortality_manager,aquarium.fish.mortality.manager,model_aquarium_fish_mortality,stock.group_stock_manager,1,1,1,1
+access_aquarium_fish_transfer_user,aquarium.fish.transfer.user,model_aquarium_fish_transfer,base.group_user,1,1,1,0
+access_aquarium_fish_transfer_manager,aquarium.fish.transfer.manager,model_aquarium_fish_transfer,stock.group_stock_manager,1,1,1,1
+access_aquarium_fish_dashboard_user,aquarium.fish.dashboard.user,model_aquarium_fish_dashboard,base.group_user,1,1,1,1

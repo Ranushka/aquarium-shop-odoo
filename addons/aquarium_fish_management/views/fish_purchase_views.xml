@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- SEQ 38: fish purchase workflow, layered onto standard purchase.order
+         lines via is_fish_purchase_line / fish_species_id / destination_tank_id. -->
+
+    <record id="view_purchase_order_form_fish_inherit" model="ir.ui.view">
+        <field name="name">purchase.order.form.fish.inherit</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='order_line']/tree/field[@name='product_id']" position="after">
+                <field name="is_fish_purchase_line" optional="hide"/>
+                <field name="fish_species_id" optional="show"/>
+                <field name="destination_tank_id" optional="show"/>
+                <field name="fish_batch_id" optional="hide" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- SEQ 37: fish sales are pos.order.line records with is_fish_line set.
+         Backend visibility: a read-only tree/pivot of those lines, since
+         the full POS UI screens are only a minimal hook (see README). -->
+
+    <record id="view_pos_order_line_fish_tree" model="ir.ui.view">
+        <field name="name">pos.order.line.fish.tree</field>
+        <field name="model">pos.order.line</field>
+        <field name="arch" type="xml">
+            <tree create="0" edit="0" delete="0">
+                <field name="order_id"/>
+                <field name="fish_species_id"/>
+                <field name="fish_batch_id"/>
+                <field name="source_tank_id"/>
+                <field name="qty"/>
+                <field name="price_subtotal_incl"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_pos_order_line_fish_pivot" model="ir.ui.view">
+        <field name="name">pos.order.line.fish.pivot</field>
+        <field name="model">pos.order.line</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="fish_species_id" type="row"/>
+                <field name="qty" type="measure"/>
+                <field name="price_subtotal_incl" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="action_fish_sales" model="ir.actions.act_window">
+        <field name="name">Fish Sales</field>
+        <field name="res_model">pos.order.line</field>
+        <field name="view_mode">tree,pivot</field>
+        <field name="domain">[('is_fish_line', '=', True)]</field>
+        <field name="context">{}</field>
+    </record>
+
+    <record id="action_fish_sales_view_tree" model="ir.actions.act_window.view">
+        <field name="sequence">1</field>
+        <field name="view_mode">tree</field>
+        <field name="view_id" ref="view_pos_order_line_fish_tree"/>
+        <field name="act_window_id" ref="action_fish_sales"/>
+    </record>
+    <record id="action_fish_sales_view_pivot" model="ir.actions.act_window.view">
+        <field name="sequence">2</field>
+        <field name="view_mode">pivot</field>
+        <field name="view_id" ref="view_pos_order_line_fish_pivot"/>
+        <field name="act_window_id" ref="action_fish_sales"/>
+    </record>
+</odoo>

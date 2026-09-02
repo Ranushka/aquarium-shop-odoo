@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_fish_mortality_tree" model="ir.ui.view">
+        <field name="name">aquarium.fish.mortality.tree</field>
+        <field name="model">aquarium.fish.mortality</field>
+        <field name="arch" type="xml">
+            <tree decoration-muted="state == 'rejected'" decoration-success="state == 'approved'">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="tank_id"/>
+                <field name="fish_species_id"/>
+                <field name="lot_id"/>
+                <field name="quantity"/>
+                <field name="reason"/>
+                <field name="staff_member_id"/>
+                <field name="state"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_fish_mortality_form" model="ir.ui.view">
+        <field name="name">aquarium.fish.mortality.form</field>
+        <field name="model">aquarium.fish.mortality</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_approve" type="object" string="Approve"
+                            class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_reject" type="object" string="Reject"
+                            invisible="state != 'draft'"/>
+                    <button name="action_reset_to_draft" type="object" string="Reset to Draft"
+                            invisible="state == 'draft'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,approved"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="date"/>
+                            <field name="lot_id"/>
+                            <field name="fish_species_id"/>
+                            <field name="tank_id"/>
+                        </group>
+                        <group>
+                            <field name="quantity"/>
+                            <field name="reason"/>
+                            <field name="staff_member_id"/>
+                        </group>
+                    </group>
+                    <group string="Notes">
+                        <field name="notes" nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_fish_mortality_search" model="ir.ui.view">
+        <field name="name">aquarium.fish.mortality.search</field>
+        <field name="model">aquarium.fish.mortality</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="tank_id"/>
+                <field name="fish_species_id"/>
+                <field name="lot_id"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Approved" name="approved" domain="[('state', '=', 'approved')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Tank" name="group_tank" context="{'group_by': 'tank_id'}"/>
+                    <filter string="Species" name="group_species" context="{'group_by': 'fish_species_id'}"/>
+                    <filter string="Reason" name="group_reason" context="{'group_by': 'reason'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_fish_mortality" model="ir.actions.act_window">
+        <field name="name">Fish Mortality</field>
+        <field name="res_model">aquarium.fish.mortality</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_fish_mortality_search"/>
+    </record>
+</odoo>

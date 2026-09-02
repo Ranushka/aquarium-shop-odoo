@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- SEQ 33: mobile/tablet-friendly public tank scan page. Deliberately
+         self-contained (no dependency on the `website` module / its
+         layout) so it renders cleanly on a plain tablet browser. -->
+    <template id="tank_scan_template" name="Aquarium Tank Scan">
+        <html>
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+                <title>Tank <t t-esc="tank.tank_code"/></title>
+                <style>
+                    * { box-sizing: border-box; }
+                    body {
+                        font-family: -apple-system, Helvetica, Arial, sans-serif;
+                        margin: 0; padding: 16px; background: #0f172a; color: #f1f5f9;
+                    }
+                    .header { text-align: center; margin-bottom: 20px; }
+                    .header h1 { font-size: 2.2em; margin: 0; }
+                    .header .sub { color: #94a3b8; font-size: 1.1em; }
+                    .kpi-row { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+                    .kpi { flex: 1; min-width: 130px; background: #1e293b; border-radius: 12px;
+                           padding: 16px; text-align: center; }
+                    .kpi .value { font-size: 2em; font-weight: bold; color: #38bdf8; }
+                    .kpi .label { color: #94a3b8; font-size: 0.9em; }
+                    .section { background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+                    .section h2 { margin-top: 0; font-size: 1.3em; border-bottom: 1px solid #334155; padding-bottom: 8px; }
+                    table { width: 100%; border-collapse: collapse; font-size: 1.05em; }
+                    th, td { text-align: left; padding: 10px 6px; border-bottom: 1px solid #334155; }
+                    th { color: #94a3b8; font-weight: 600; }
+                    .empty { color: #64748b; padding: 12px 0; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1><t t-esc="tank.tank_code"/></h1>
+                    <div class="sub"><t t-esc="tank.tank_display_name or tank.display_name"/></div>
+                </div>
+
+                <div class="kpi-row">
+                    <div class="kpi">
+                        <div class="value"><t t-esc="total_current_stock"/></div>
+                        <div class="label">Current Stock</div>
+                    </div>
+                    <div class="kpi">
+                        <div class="value"><t t-esc="tank.tank_capacity"/></div>
+                        <div class="label">Capacity</div>
+                    </div>
+                    <div class="kpi">
+                        <div class="value"><t t-esc="len(batch_rows)"/></div>
+                        <div class="label">Batches</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>Fish Species &amp; Batches</h2>
+                    <table t-if="batch_rows">
+                        <tr>
+                            <th>Batch</th>
+                            <th>Species</th>
+                            <th>Qty Here</th>
+                        </tr>
+                        <tr t-foreach="batch_rows" t-as="row">
+                            <td><t t-esc="row['lot'].name"/></td>
+                            <td><t t-esc="row['species'].common_name"/></td>
+                            <td><t t-esc="row['current_qty_here']"/></td>
+                        </tr>
+                    </table>
+                    <div class="empty" t-if="not batch_rows">No fish currently in this tank.</div>
+                </div>
+
+                <div class="section">
+                    <h2>Recent Sales</h2>
+                    <table t-if="recent_sales">
+                        <tr>
+                            <th>Species</th>
+                            <th>Qty</th>
+                        </tr>
+                        <tr t-foreach="recent_sales" t-as="line">
+                            <td><t t-esc="line.fish_species_id.common_name"/></td>
+                            <td><t t-esc="line.qty"/></td>
+                        </tr>
+                    </table>
+                    <div class="empty" t-if="not recent_sales">No recent sales recorded from this tank.</div>
+                </div>
+
+                <div class="section">
+                    <h2>Recent Mortality</h2>
+                    <table t-if="recent_mortality">
+                        <tr>
+                            <th>Date</th>
+                            <th>Species</th>
+                            <th>Qty</th>
+                            <th>Reason</th>
+                        </tr>
+                        <tr t-foreach="recent_mortality" t-as="m">
+                            <td><t t-esc="m.date"/></td>
+                            <td><t t-esc="m.fish_species_id.common_name"/></td>
+                            <td><t t-esc="m.quantity"/></td>
+                            <td><t t-esc="m.reason"/></td>
+                        </tr>
+                    </table>
+                    <div class="empty" t-if="not recent_mortality">No recent mortality recorded for this tank.</div>
+                </div>
+            </body>
+        </html>
+    </template>
+</odoo>

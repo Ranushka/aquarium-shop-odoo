@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Fish batches are stock.lot records; add fish-specific fields to the
+         existing Lots/Serial Numbers views rather than building a parallel
+         model + views (SEQ 29 mapping: Fish Batch = stock.lot). -->
+
+    <record id="view_stock_lot_form_fish_inherit" model="ir.ui.view">
+        <field name="name">stock.lot.form.fish.inherit</field>
+        <field name="model">stock.lot</field>
+        <field name="inherit_id" ref="stock.view_production_lot_form"/>
+        <field name="arch" type="xml">
+            <field name="product_id" position="after">
+                <field name="is_fish_batch"/>
+            </field>
+            <xml expr="//sheet" position="inside">
+                <group string="Fish Batch Details" invisible="not is_fish_batch">
+                    <group>
+                        <field name="fish_species_id"/>
+                        <field name="supplier_id"/>
+                        <field name="date_received"/>
+                        <field name="tank_id"/>
+                        <field name="purchase_order_id" readonly="1"/>
+                    </group>
+                    <group>
+                        <field name="quantity_received"/>
+                        <field name="cost_per_fish"/>
+                        <field name="total_purchase_cost"/>
+                        <field name="currency_id" invisible="1"/>
+                    </group>
+                </group>
+                <group string="Stock Calculation (SEQ 34)" invisible="not is_fish_batch">
+                    <group>
+                        <field name="quantity_sold"/>
+                        <field name="quantity_mortality"/>
+                        <field name="mortality_percentage"/>
+                    </group>
+                    <group>
+                        <field name="quantity_transferred_out"/>
+                        <field name="quantity_transferred_in"/>
+                        <field name="current_quantity"/>
+                    </group>
+                </group>
+                <group string="Profitability" invisible="not is_fish_batch">
+                    <field name="total_sales_revenue"/>
+                    <field name="profit"/>
+                    <field name="profit_margin"/>
+                </group>
+            </xml>
+        </field>
+    </record>
+
+    <record id="view_stock_lot_tree_fish_inherit" model="ir.ui.view">
+        <field name="name">stock.lot.tree.fish.inherit</field>
+        <field name="model">stock.lot</field>
+        <field name="inherit_id" ref="stock.view_production_lot_tree"/>
+        <field name="arch" type="xml">
+            <field name="product_id" position="after">
+                <field name="fish_species_id" optional="show"/>
+                <field name="tank_id" optional="show"/>
+                <field name="current_quantity" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_fish_batch_search" model="ir.ui.view">
+        <field name="name">stock.lot.search.fish</field>
+        <field name="model">stock.lot</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="fish_species_id"/>
+                <field name="tank_id"/>
+                <field name="supplier_id"/>
+                <filter string="Fish Batches" name="is_fish_batch" domain="[('is_fish_batch', '=', True)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Fish Species" name="group_species" context="{'group_by': 'fish_species_id'}"/>
+                    <filter string="Tank" name="group_tank" context="{'group_by': 'tank_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_fish_batches" model="ir.actions.act_window">
+        <field name="name">Fish Batches</field>
+        <field name="res_model">stock.lot</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('is_fish_batch', '=', True)]</field>
+        <field name="context">{'default_is_fish_batch': True, 'search_default_is_fish_batch': 1}</field>
+        <field name="search_view_id" ref="view_fish_batch_search"/>
+    </record>
+</odoo>

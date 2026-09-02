@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_fish_species_tree" model="ir.ui.view">
+        <field name="name">aquarium.fish.species.tree</field>
+        <field name="model">aquarium.fish.species</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="common_name"/>
+                <field name="scientific_name"/>
+                <field name="category_id"/>
+                <field name="default_selling_price"/>
+                <field name="total_current_quantity"/>
+                <field name="status"/>
+                <field name="is_available"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_fish_species_form" model="ir.ui.view">
+        <field name="name">aquarium.fish.species.form</field>
+        <field name="model">aquarium.fish.species</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <field name="image_1920" widget="image" class="oe_avatar"/>
+                    <div class="oe_title">
+                        <label for="common_name"/>
+                        <h1>
+                            <field name="common_name" placeholder="Common name"/>
+                        </h1>
+                        <field name="scientific_name" placeholder="Scientific name"/>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="category_id"/>
+                            <field name="default_selling_price"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="product_id"/>
+                        </group>
+                        <group>
+                            <field name="status"/>
+                            <field name="is_available"/>
+                            <field name="active"/>
+                            <field name="total_current_quantity"/>
+                            <field name="batch_count"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Notes">
+                            <field name="notes"/>
+                        </page>
+                        <page string="Batches">
+                            <field name="batch_ids" readonly="1">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="date_received"/>
+                                    <field name="quantity_received"/>
+                                    <field name="current_quantity"/>
+                                    <field name="tank_id"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_fish_species_kanban" model="ir.ui.view">
+        <field name="name">aquarium.fish.species.kanban</field>
+        <field name="model">aquarium.fish.species</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="common_name"/>
+                <field name="total_current_quantity"/>
+                <field name="default_selling_price"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_card oe_kanban_global_click">
+                            <img t-att-src="kanban_image('aquarium.fish.species', 'image_1920', record.id.raw_value)"
+                                 class="o_kanban_image" style="width:64px;height:64px;"/>
+                            <div class="oe_kanban_details">
+                                <strong><field name="common_name"/></strong>
+                                <div>Stock: <field name="total_current_quantity"/></div>
+                                <div>Price: <field name="default_selling_price"/></div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="action_fish_species" model="ir.actions.act_window">
+        <field name="name">Fish Species</field>
+        <field name="res_model">aquarium.fish.species</field>
+        <field name="view_mode">kanban,tree,form</field>
+    </record>
+
+    <record id="view_fish_category_tree" model="ir.ui.view">
+        <field name="name">aquarium.fish.category.tree</field>
+        <field name="model">aquarium.fish.category</field>
+        <field name="arch" type="xml">
+            <tree editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_fish_category" model="ir.actions.act_window">
+        <field name="name">Fish Categories</field>
+        <field name="res_model">aquarium.fish.category</field>
+        <field name="view_mode">tree</field>
+    </record>
+</odoo>

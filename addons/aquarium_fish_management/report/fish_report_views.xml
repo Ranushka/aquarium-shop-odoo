@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- SEQ 40: Fish movement report - Odoo's own stock move line history,
+         filtered to fish batches. This IS the auditable movement trail
+         referenced in SEQ 36. -->
+    <record id="view_fish_movement_tree" model="ir.ui.view">
+        <field name="name">stock.move.line.fish.movement.tree</field>
+        <field name="model">stock.move.line</field>
+        <field name="arch" type="xml">
+            <tree create="0" edit="0" delete="0">
+                <field name="date"/>
+                <field name="lot_id"/>
+                <field name="product_id"/>
+                <field name="location_id"/>
+                <field name="location_dest_id"/>
+                <field name="quantity"/>
+                <field name="state"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_fish_movement_report" model="ir.actions.act_window">
+        <field name="name">Fish Movement</field>
+        <field name="res_model">stock.move.line</field>
+        <field name="view_mode">tree</field>
+        <field name="view_id" ref="view_fish_movement_tree"/>
+        <field name="domain">[('lot_id.is_fish_batch', '=', True), ('state', '=', 'done')]</field>
+    </record>
+
+    <!-- SEQ 40: Fish profitability report - pivot on stock.lot's computed
+         revenue/cost/profit fields. -->
+    <record id="view_fish_profitability_tree" model="ir.ui.view">
+        <field name="name">stock.lot.fish.profitability.tree</field>
+        <field name="model">stock.lot</field>
+        <field name="arch" type="xml">
+            <tree create="0" edit="0" delete="0">
+                <field name="name"/>
+                <field name="fish_species_id"/>
+                <field name="quantity_received"/>
+                <field name="total_purchase_cost"/>
+                <field name="total_sales_revenue"/>
+                <field name="profit"/>
+                <field name="profit_margin"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_fish_profitability_report" model="ir.actions.act_window">
+        <field name="name">Fish Profitability</field>
+        <field name="res_model">stock.lot</field>
+        <field name="view_mode">tree</field>
+        <field name="view_id" ref="view_fish_profitability_tree"/>
+        <field name="domain">[('is_fish_batch', '=', True)]</field>
+    </record>
+</odoo>

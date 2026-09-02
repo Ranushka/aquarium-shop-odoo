@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- SEQ 40: Fish sold report, as a pivot on pos.order.line -->
+    <record id="view_fish_sold_pivot" model="ir.ui.view">
+        <field name="name">pos.order.line.fish.sold.pivot</field>
+        <field name="model">pos.order.line</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="fish_species_id" type="row"/>
+                <field name="source_tank_id" type="col"/>
+                <field name="qty" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="action_fish_sold_report" model="ir.actions.act_window">
+        <field name="name">Fish Sold</field>
+        <field name="res_model">pos.order.line</field>
+        <field name="view_mode">pivot,tree</field>
+        <field name="domain">[('is_fish_line', '=', True)]</field>
+    </record>
+    <record id="action_fish_sold_report_view_pivot" model="ir.actions.act_window.view">
+        <field name="sequence">1</field>
+        <field name="view_mode">pivot</field>
+        <field name="view_id" ref="view_fish_sold_pivot"/>
+        <field name="act_window_id" ref="action_fish_sold_report"/>
+    </record>
+
+    <!-- Mortality and mortality percentage report, as a pivot -->
+    <record id="view_fish_mortality_pivot" model="ir.ui.view">
+        <field name="name">aquarium.fish.mortality.pivot</field>
+        <field name="model">aquarium.fish.mortality</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="fish_species_id" type="row"/>
+                <field name="reason" type="col"/>
+                <field name="quantity" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="action_fish_mortality_report" model="ir.actions.act_window">
+        <field name="name">Mortality Report</field>
+        <field name="res_model">aquarium.fish.mortality</field>
+        <field name="view_mode">pivot,tree,graph</field>
+        <field name="domain">[('state', '=', 'approved')]</field>
+    </record>
+    <record id="action_fish_mortality_report_view_pivot" model="ir.actions.act_window.view">
+        <field name="sequence">1</field>
+        <field name="view_mode">pivot</field>
+        <field name="view_id" ref="view_fish_mortality_pivot"/>
+        <field name="act_window_id" ref="action_fish_mortality_report"/>
+    </record>
+</odoo>

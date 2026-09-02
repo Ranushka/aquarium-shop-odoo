@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates id="template" xml:space="preserve">
+    <!--
+        SEQ 37 minimal UI hook: placeholder template kept intentionally
+        small. A production build would extend ProductScreen's product grid
+        template to route a "fish" product's click through
+        onClickFishProduct() above, and would show the chosen tank on the
+        orderline. That deeper ProductScreen/Orderline template surgery is
+        the part left as future work - see the module README.
+    -->
+    <t t-name="aquarium_fish_management.FishSaleNote" owl="1">
+        <div class="aquarium-fish-sale-note" style="display:none;">
+            Fish sale UI hook loaded (aquarium_fish_management).
+        </div>
+    </t>
+</templates>

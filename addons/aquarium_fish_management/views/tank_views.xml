@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Tanks are stock.location records (SEQ 29 mapping: Tank = stock.location). -->
+
+    <record id="view_stock_location_form_tank_inherit" model="ir.ui.view">
+        <field name="name">stock.location.form.tank.inherit</field>
+        <field name="model">stock.location</field>
+        <field name="inherit_id" ref="stock.view_location_form"/>
+        <field name="arch" type="xml">
+            <field name="usage" position="after">
+                <field name="is_tank"/>
+            </field>
+            <xml expr="//sheet" position="inside">
+                <group string="Tank Details (SEQ 32)" invisible="not is_tank">
+                    <group>
+                        <field name="tank_code"/>
+                        <field name="tank_display_name"/>
+                        <field name="tank_capacity"/>
+                        <field name="current_fish_stock"/>
+                        <field name="batch_count"/>
+                    </group>
+                    <group>
+                        <field name="tank_scan_url" widget="url"/>
+                        <field name="tank_qr_image" widget="image"/>
+                        <button name="action_generate_qr" type="object"
+                                string="Generate / Refresh QR Code" class="btn-secondary"/>
+                    </group>
+                </group>
+                <group string="Notes" invisible="not is_tank">
+                    <field name="tank_notes" nolabel="1"/>
+                </group>
+                <group string="Assigned Batches" invisible="not is_tank">
+                    <field name="batch_ids" nolabel="1" readonly="1">
+                        <tree>
+                            <field name="name"/>
+                            <field name="fish_species_id"/>
+                            <field name="current_quantity"/>
+                        </tree>
+                    </field>
+                </group>
+            </xml>
+        </field>
+    </record>
+
+    <record id="view_stock_location_search_tank" model="ir.ui.view">
+        <field name="name">stock.location.search.tank</field>
+        <field name="model">stock.location</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="tank_code"/>
+                <field name="tank_display_name"/>
+                <filter string="Tanks" name="is_tank" domain="[('is_tank', '=', True)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_stock_location_tree_tank" model="ir.ui.view">
+        <field name="name">stock.location.tree.tank</field>
+        <field name="model">stock.location</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="tank_code"/>
+                <field name="tank_display_name"/>
+                <field name="tank_capacity"/>
+                <field name="current_fish_stock"/>
+                <field name="batch_count"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_aquarium_tanks" model="ir.actions.act_window">
+        <field name="name">Tanks</field>
+        <field name="res_model">stock.location</field>
+        <field name="view_mode">tree,form</field>
+        <field name="view_id" ref="view_stock_location_tree_tank"/>
+        <field name="domain">[('is_tank', '=', True)]</field>
+        <field name="context">{'default_is_tank': True, 'default_usage': 'internal', 'search_default_is_tank': 1}</field>
+        <field name="search_view_id" ref="view_stock_location_search_tank"/>
+    </record>
+</odoo>

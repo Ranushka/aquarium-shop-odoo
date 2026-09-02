@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- No custom security groups yet: fish records reuse standard Inventory
+         groups (base.group_user for read, stock.group_stock_manager for
+         full management), as declared in ir.model.access.csv. This file is
+         kept as the place to add record rules / dedicated groups later,
+         e.g. restricting mortality approval to a "Fish Manager" group. -->
+</odoo>
