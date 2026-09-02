@@ -1,12 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <templates id="template" xml:space="preserve">
     <!--
-        SEQ 37 minimal UI hook: placeholder template kept intentionally
-        small. A production build would extend ProductScreen's product grid
-        template to route a "fish" product's click through
-        onClickFishProduct() above, and would show the chosen tank on the
-        orderline. That deeper ProductScreen/Orderline template surgery is
-        the part left as future work - see the module README.
+        SEQ 37 - no custom QWeb template is actually needed for the fish-sale
+        flow: the tank picker reuses Odoo's own generic
+        `point_of_sale.app.utils.input_popups.selection_popup.SelectionPopup`
+        component (title + a plain list of choices), and the "no stock"
+        error reuses the generic `AlertDialog`. Both are driven entirely
+        from pos_fish_sale.js with no XML of our own.
+
+        This file is kept (and still registered in __manifest__.py's POS
+        asset bundle) as a placeholder for the day a *custom* fish-tank
+        picker is wanted - e.g. one that shows per-tank species photos,
+        capacity bars, or batch-level detail beyond "code (qty available)".
+        Until then there is deliberately no template here to inherit
+        against, since guessing at the real ProductScreen/product-grid
+        template structure without a live Odoo 17 instance to check against
+        would be more likely to silently no-op or break than to work - see
+        the module README's "Confidence" section for what was and wasn't
+        verified.
     -->
     <t t-name="aquarium_fish_management.FishSaleNote" owl="1">
         <div class="aquarium-fish-sale-note" style="display:none;">

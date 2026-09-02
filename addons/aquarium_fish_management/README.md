@@ -51,7 +51,7 @@ aquarium_fish_management/
 ├── report/                   # act_window "reports" (SEQ 40) + QR label PDF report
 ├── security/                 # ir.model.access.csv (+ placeholder security XML)
 ├── data/                     # sequences + starter fish categories
-├── static/src/{js,xml}/      # minimal POS UI hook (SEQ 37, see below)
+├── static/src/{js,xml}/      # POS UI wiring (SEQ 37, see below - not live-tested)
 └── tests/
     ├── test_fish_stock_formula.py       # SEQ 34 pure-function tests
     └── test_fish_batch_integration.py   # SEQ 34 via real stock.lot/mortality records
@@ -123,37 +123,109 @@ stock but approved mortality does, and mortality percentage).
 
 ## What's partial / stubbed - be aware before relying on this in production
 
-- **SEQ 37 (POS fish sales) - backend is solid, POS UI is a minimal hook,
-  not a finished screen.** Concretely:
-  - **Done**: `pos.order.line` fields (`is_fish_line`, `fish_species_id`,
-    `source_tank_id`, `fish_batch_id`); `pos.order.get_available_fish_tanks()`
-    - a backend RPC-callable method returning which tanks currently have
-    stock for a given species, for the cashier to choose from when more
-    than one qualifies; a best-effort post-processing step
-    (`_link_fish_lines_to_stock_moves`) that, after an order is
-    processed, tries to stamp the chosen batch's lot onto the resulting
-    stock move line so `quantity_sold` picks it up correctly.
-  - **Stubbed / not production-ready**: the actual POS JS/OWL screen. What
-    exists (`static/src/js/pos_fish_sale.js`, `static/src/xml/pos_fish_sale.xml`)
-    is a `ProductScreen` patch sketch with an `onClickFishProduct()` handler
-    and a tank-selection popup call, wired to a placeholder XML template. It
-    is **not connected to a real "fish" product grid entry or button** (no
-    template inheritance was added that actually renders a trigger for it),
-    and — the more important gap — **the chosen species/tank/batch is
-    stored on the in-browser JS `Orderline` object as ad-hoc properties but
-    is never serialized into the JSON Odoo sends to the backend** (that
-    needs an `Orderline.export_as_JSON` / `init_from_JSON` patch, plus a
-    matching field on the backend `pos.order.line` create path to consume
-    it, which is not implemented). So today, `_link_fish_lines_to_stock_moves`
-    has nothing populated to act on end-to-end. Treat the JS file as a
-    documented starting point for whoever picks up full POS screen work,
-    not as functioning UI. A cashier can still complete an ordinary POS
-    sale of a fish-linked product; what's missing is the *guided*
-    species/tank selection flow and its round-trip to the backend fields.
-  - Stock reduction timing: unaffected by the above - Odoo's own POS flow
-    already only creates/validates stock moves once an order is paid, so
-    "stock reduces only after the sale is successfully completed" holds
-    regardless of the JS gaps.
+- **SEQ 37 (POS fish sales) - now wired end-to-end per the Odoo 17.0
+  mainline API as best understood from reading Odoo's own
+  `point_of_sale` source and long-standing conventions; NOT verified in a
+  live browser session (no Odoo runtime was available in this
+  environment). Read the "Confidence" subsection below before relying on
+  this in production; a human needs to click through a real POS session
+  before this goes live.**
+
+  **What's wired now:**
+  - `product.product.fish_species_id` (`models/pos_order.py`,
+    `ProductProduct`) - a thin computed mirror of
+    `aquarium.fish.species.product_id`, so the POS frontend can tell, per
+    product tile, whether a product is a fish species.
+  - `pos.session._loader_params_product_product()` override
+    (`models/pos_order.py`, `PosSession`) adds `fish_species_id` to the
+    list of product fields the POS frontend loads at session start - without
+    this the field would exist on the backend but never reach the browser.
+  - `static/src/js/pos_fish_sale.js` patches
+    `ProductScreen.prototype.addProductToOrder(product)`: if the clicked
+    product carries a `fish_species_id`, it calls
+    `pos.order.get_available_fish_tanks()`, then blocks the sale with an
+    `AlertDialog` on zero tanks, auto-selects on exactly one tank, or opens
+    a `SelectionPopup` (the "popup" service) on two or more, before adding
+    the line.
+  - The chosen species/tank/batch is stamped onto the newly created
+    `Orderline` via a `setFishSaleData()` method added by the patch, and is
+    now serialized into the order JSON via patched
+    `Orderline.export_as_JSON()` / `init_from_JSON()` (Odoo 17's POS data
+    layer is still the pre-18 plain-class `models.js`, not a reactive OWL
+    data model, so this is the standard place to add custom fields to the
+    payload).
+  - On the backend, `PosOrder._order_line_fields()` is now overridden
+    (`models/pos_order.py`) to pull `is_fish_line` /
+    `fish_species_id` / `source_tank_id` / `fish_batch_id` out of the raw
+    line JSON and into the `pos.order.line` create vals - the base method
+    only whitelists the stock fields it already knows about and silently
+    drops anything else, which is why this override was needed; without it
+    the fields existed on the model but nothing ever populated them from a
+    real sale. `_link_fish_lines_to_stock_moves()` (unchanged) now has real
+    data to act on.
+  - Stock reduction timing: unaffected by any of the above - Odoo's own POS
+    flow already only creates/validates stock moves once an order is paid,
+    so "stock reduces only after the sale is successfully completed" holds
+    regardless.
+
+  **Confidence / what could not be verified (no live Odoo runtime here):**
+  - JS syntax was checked with `node --check` and the XML template was
+    checked with a plain XML parser; **neither was run inside an actual
+    Odoo 17 POS session in a browser.** No click-through, no console
+    inspection, no network-payload inspection was possible.
+  - The riskiest assumption is the exact click-handler method name on
+    `ProductScreen` - this module targets `addProductToOrder(product)`,
+    believed correct for Odoo 17.0 mainline, but point-releases have used
+    `_clickProduct` at other points in the point_of_sale addon's history.
+    A `console.error` fires at module load time if
+    `ProductScreen.prototype.addProductToOrder` doesn't exist on the
+    running build, so this will be immediately visible in the browser
+    console if wrong - if it does fire, rename the patched method to match
+    whatever this Odoo build actually calls on a product-tile click.
+  - The second assumption is that the `popup` service (`SelectionPopup`)
+    is still registered in this exact 17.0 point-release; some later
+    point-releases trimmed it in favour of `dialog` only. If it's missing,
+    the code falls back to auto-selecting the first tank and logs a
+    `console.error` explaining the gap, rather than failing the sale
+    silently or throwing - but that fallback means the *guided* tank
+    choice would silently not happen for multi-tank species until someone
+    ports `_selectFishTank()` to the `dialog` service's `makeAwaitable()`
+    pattern.
+  - `PosOrder._order_line_fields()` and
+    `PosSession._loader_params_product_product()` are believed to be the
+    correct 17.0 method names/signatures for, respectively, mapping a raw
+    order-line JSON dict into `pos.order.line` create vals and declaring
+    which `product.product` fields the POS frontend loads - based on
+    reading Odoo's own `point_of_sale/models/pos_order.py` and
+    `pos_session.py` conventions, not confirmed against a running 17.0
+    instance.
+  - `Orderline`/`export_as_JSON`/`init_from_JSON` living in
+    `@point_of_sale/app/store/models` with a plain-class (non-reactive)
+    shape is believed stable across the 17.0 series (the reactive OWL data
+    model rewrite is an 18.0 change), but this could not be confirmed
+    against this exact point-release either.
+
+  **What a human should manually test first, in order:**
+  1. Install/upgrade the module against a real Odoo 17 instance and open a
+     POS session; confirm no JS console errors on load (in particular,
+     neither of the two `console.error` messages above should appear).
+  2. Create a fish species with `product_id` set to a POS-sellable
+     product, give it stock in exactly one tank, and click that product's
+     tile in the POS grid - it should add the line immediately with no
+     popup.
+  3. Give the same species stock in two or more tanks and click its tile
+     again - the tank-picker popup should appear; pick a tank and confirm
+     the line is added.
+  4. Click a fish-species tile for a species with zero tank stock - the
+     "No Stock" alert should appear and no line should be added.
+  5. Complete a sale containing a fish line, then check the resulting
+     `pos.order.line` record's `is_fish_line` / `fish_species_id` /
+     `source_tank_id` / `fish_batch_id` fields in the backend - these
+     should reflect exactly what was chosen at the POS, and
+     `stock.lot.current_quantity` for that batch should drop accordingly
+     once the order/picking is validated.
+  6. Reopen/reprint an order containing a fish line (exercises
+     `init_from_JSON`) and confirm the fish fields survive the round trip.
 
 - **QR code generation** depends on the optional `qrcode` Python package
   being installed in the Odoo image (`pip install qrcode[pil]`). If it is
@@ -196,5 +268,10 @@ database. What *was* done:
 Before first real install, double-check in an actual Odoo 17 instance:
 the `purchase.purchase_order_form` XPath above, the POS asset bundle name
 used in `__manifest__.py` (`point_of_sale._assets_pos` - this is correct
-for 17.0 but bundle names have moved between versions before), and that
-`qrcode` is installed in the Python environment.
+for 17.0 but bundle names have moved between versions before), that
+`qrcode` is installed in the Python environment, and - per the SEQ 37
+"Confidence" section above - the `ProductScreen.prototype.addProductToOrder`
+method name, the `popup` service's availability, and the
+`PosOrder._order_line_fields()` / `PosSession._loader_params_product_product()`
+method names/signatures the new POS wiring in
+`static/src/js/pos_fish_sale.js` and `models/pos_order.py` depends on.
