@@ -26,3 +26,30 @@ script itself created and logged get removed.
 Re-running `demo_data_add.py` without removing first will just add a second
 copy of everything (it doesn't check for existing demo data) — run
 `demo_data_remove.py` first if you want a clean slate.
+
+## Important: this script does NOT create real stock movements, by design
+
+The fish batch it creates has `quantity_received` set as a plain field on the
+`stock.lot` record, but no real `stock.quant`/`stock.move` — so it's fully,
+cleanly removable, but it will **not** show up in the POS's tank-availability
+check (`get_available_fish_tanks`), which reads actual on-hand quantity via
+`stock.quant`, not the lot's own field. If you need to test the POS
+multi-tank picker specifically, you need real stock — and that comes with a
+real Odoo constraint worth knowing about first:
+
+**Once a product/lot/location has a real `stock.quant` or `stock.move`
+against it, Odoo will not let anyone — including admin — hard-delete that
+quant, or the lot/product/location referencing it.** This is intentional:
+inventory audit trails are append-only by design, same as in any real ERP.
+The only way to "remove" that stock is another inventory count bringing the
+quantity back to 0 (not a delete), and the lot/product/tank involved can only
+be **archived** (hidden from all normal views), not deleted, once they carry
+that history.
+
+Practically: if you need to test something that requires real POS stock
+availability, do it deliberately and expect to end up with a small number of
+permanently-archived (inactive, invisible, zero-quantity) records afterward
+— that's not a bug in these scripts, it's Odoo protecting inventory
+integrity, and it's exactly what will happen in production too once real
+stock starts moving. Don't extend `demo_data_add.py` to create real quants
+without updating this note and accepting that trade-off.
