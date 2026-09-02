@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: ${AQUARIUM_PG_PASSWORD}
+      POSTGRES_DB: postgres
+    volumes:
+      - aquarium-postgres-data:/var/lib/postgresql/data
+  odoo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      HOST: postgres
+      PORT: 5432
+      USER: odoo
+      PASSWORD: ${AQUARIUM_PG_PASSWORD}
+      ODOO_MASTER_PASSWORD: ${AQUARIUM_ODOO_MASTER_PASSWORD}
+    volumes:
+      - aquarium-odoo-filestore:/var/lib/odoo
+    labels:
+      - traefik.docker.network=dokploy-network
+      - traefik.http.routers.aquarium-shop-web.rule=Host(`aquarium.ranu.win`)
+      - traefik.http.routers.aquarium-shop-web.entrypoints=web
+      - traefik.http.services.aquarium-shop-web.loadbalancer.server.port=8069
+      - traefik.http.routers.aquarium-shop-web.service=aquarium-shop-web
+      - traefik.enable=true
+    networks:
+      - dokploy-network
+      - default
+
+volumes:
+  aquarium-postgres-data:
+    external: true
+    name: aquarium-postgres-data
+  aquarium-odoo-filestore:
+    external: true
+    name: aquarium-odoo-filestore
+
+networks:
+  dokploy-network:
+    external: true
